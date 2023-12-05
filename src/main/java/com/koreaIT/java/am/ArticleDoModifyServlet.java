@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Map;
 
 import com.koreaIT.java.am.config.Config;
 import com.koreaIT.java.am.util.DBUtil;
@@ -16,13 +15,17 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@WebServlet("/article/detail") // url매핑
-public class ArticleDetailServlet extends HttpServlet {
+@WebServlet("/article/doModify") // url매핑
+public class ArticleDoModifyServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
+		response.setContentType("text/html; charset=UTF-8;");
+		
 		int id = Integer.parseInt(request.getParameter("id"));
+		String title = request.getParameter("title");
+		String body = request.getParameter("body");
 		
 		Connection conn = null;
 
@@ -32,14 +35,15 @@ public class ArticleDetailServlet extends HttpServlet {
 			conn = DriverManager.getConnection(url, Config.getDBUser(), Config.getDBPassWd());
 
 			SecSql sql = new SecSql();
-			sql.append("SELECT * FROM article");
+			sql.append("UPDATE article");
+			sql.append("SET updateDate = NOW(),");
+			sql.append("title = ?,", title);
+			sql.append("body = ?", body);
 			sql.append("WHERE id = ?", id);
 			
-			Map<String, Object> articleMap = DBUtil.selectRow(conn, sql);
+			DBUtil.update(conn, sql);
 			
-			request.setAttribute("articleMap", articleMap);
-			
-			request.getRequestDispatcher("/jsp/article/detail.jsp").forward(request, response);
+			response.getWriter().append(String.format("<script>alert('%d번 게시물이 수정되었습니다'); location.replace('detail?id=%d');</script>", id, id));
 			
 		} catch (ClassNotFoundException e) {
 			System.out.println("드라이버 로딩 실패");
@@ -55,6 +59,11 @@ public class ArticleDetailServlet extends HttpServlet {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doGet(req, resp);
 	}
 
 }
